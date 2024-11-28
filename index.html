@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUMATE | Sri Sairam Engineering College</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            margin-bottom: 40px;
+        }
+        h6 {
+            color: #333;
+            text-align: center;
+        }
+        .code-container {
+            position: relative;
+            background: #f4f4f4;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+        }
+        .copy-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h6>Simulation of DPSK Modulation</h6>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode('dpskCode')">Copy Code</button>
+            <pre id="dpskCode" style="display:none;">
+clc;
+clear all;
+close all;
+
+% Define parameters
+t = 0:0.01:1;  % Time vector for one bit
+fc = 2;        % Carrier frequency
+M = [1 0 1 1 0 1 0];  % Message bits
+codedM = 1;    % Initialize codedM
+
+% DPSK Encoding
+for i = 1:length(M)
+    bit = ~xor(codedM(i), M(i));  % DPSK encoding
+    codedM = [codedM bit];
+end
+codedM = codedM(2:end);  % Remove the initial value
+
+messageLength = length(M);
+time = [];
+digitalSignal = [];
+dpskSignal = [];
+carrierSignal = [];
+
+for i = 1:messageLength
+    carrier = sin(2 * pi * fc * t);  % Carrier signal
+    carrierSignal = [carrierSignal carrier];  % Append carrier signal
+    
+    % Generate digital signal (1s and 0s)
+    if M(i) == 1
+        bit = ones(1, length(t));
+    else
+        bit = zeros(1, length(t));
+    end
+    digitalSignal = [digitalSignal bit];  % Append digital signal
+    
+    % Generate DPSK signal
+    if codedM(i) == 1
+        DPSK = sin(2 * pi * fc * t);  % No phase shift
+    else
+        DPSK = sin(2 * pi * fc * t + pi);  % Phase shift of pi
+    end
+    dpskSignal = [dpskSignal DPSK];  % Append DPSK signal
+    
+    time = [time t + (i - 1)];  % Extend time vector for each bit period
+end
+
+% Plotting
+subplot(3, 1, 1);
+plot(time, digitalSignal, 'r', 'LineWidth', 3);
+grid on;
+title('Digital Signal');
+xlabel('Time');
+ylabel('Amplitude');
+
+subplot(3, 1, 2);
+plot(time, carrierSignal);
+grid on;
+title('Carrier Signal');
+xlabel('Time');
+ylabel('Amplitude');
+
+subplot(3, 1, 3);
+plot(time, dpskSignal, 'm');
+grid on;
+title('DPSK Signal');
+xlabel('Time');
+ylabel('Amplitude');
+            </pre>
+        </div>
+    </div>
+    <div class="container">
+        <h6>Simulation of QPSK Modulation and Constellation</h6>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode('qpskCode')">Copy Code</button>
+            <pre id="qpskCode" style="display:none;">
+clc;
+clear all;
+close all;
+
+% Define the information bits
+data = [0 0 1 1 0 1 1 0 1 1 1 0]; % Information
+
+% Plot the information before transmitting
+figure(1)
+stairs(data, 'linewidth', 3), grid on;
+title('Information before Transmitting');
+axis([0 length(data)+1 0 1.5]);
+
+% Non-Return to Zero (NZR) conversion
+data_NZR = 2 * data - 1;
+
+% Serial-to-parallel conversion
+s_p_data = reshape(data_NZR, 2, []);  % Split into two rows
+
+% Transmission parameters
+br = 10^6;       % Bit rate in bits per second
+f = br;          % Carrier frequency
+T = 1 / br;      % Bit duration
+t = 0:T/99:T;    % Time vector for one bit
+
+% Initialize signals
+y_in = [];
+y_qd = [];
+y = [];
+
+% Loop for QPSK modulation
+for i = 1:size(s_p_data, 2)
+    in_phase = s_p_data(1, i) * cos(2 * pi * f * t); % In-phase component
+    quad_phase = s_p_data(2, i) * sin(2 * pi * f * t); % Quadrature component
+    
+    y_in = [y_in in_phase];        % Append In-phase signal
+    y_qd = [y_qd quad_phase];      % Append Quadrature signal
+    y = [y in_phase + quad_phase]; % Combined QPSK signal
+end
+
+% Time vector for plotting
+tt = linspace(0, length(data) * T / 2, length(y));
+
+% Plot waveforms
+figure(2)
+subplot(3, 1, 1);
+plot(tt, y_in, 'linewidth', 3), grid on;
+title('In-phase Component');
+xlabel('Time (s)');
+ylabel('Amplitude');
+
+subplot(3, 1, 2);
+plot(tt, y_qd, 'linewidth', 3), grid on;
+title('Quadrature Component');
+xlabel('Time (s)');
+ylabel('Amplitude');
+
+subplot(3, 1, 3);
+plot(tt, y, 'linewidth', 3), grid on;
+title('QPSK Modulated Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+
+% Constellation diagram
+constellation_points = s_p_data(1, :) + 1j * s_p_data(2, :);  % QPSK symbols
+figure(3);
+plot(real(constellation_points), imag(constellation_points), 'o', 'MarkerSize', 10);
+grid on;
+axis([-1.5 1.5 -1.5 1.5]);
+title('QPSK Constellation Diagram');
+xlabel('In-phase');
+ylabel('Quadrature');
+            </pre>
+        </div>
+    </div>
+    <h6>Simulation of Signal Constellation of BPSK AND QAM</h6>
+    <div class="code-container">
+        <button class="copy-btn" onclick="copyCode('bpskqamCode')">Copy Code</button>
+        <pre id="bpskqamCode" style="display:none;">
+            clc;
+clear all;
+close all;
+
+% Parameters
+M = 2;                      % Modulation order (BPSK)
+k = log2(M);                % Bits per symbol
+n = 3 * 1e5;                % Number of bits
+nsamp = 8;                  % Oversampling factor
+
+% Generate random binary data
+X = randi([0 1], n, 1);     % Generates binary data of length n
+
+% Convert binary to decimal for symbols
+xsym = bi2de(reshape(X, k, length(X) / k).', 'left-msb');
+
+% BPSK Modulation
+bpskModulator = comm.PSKModulator(M, 'BitInput', false); % BPSK modulator object
+Y_psk = bpskModulator(xsym);
+
+% Transmit signal
+Ytx_psk = Y_psk;
+
+% Add AWGN
+EbNo = 30; % Energy per bit to noise power spectral density ratio
+SNR = EbNo + 10 * log10(k) - 10 * log10(nsamp); % Signal-to-noise ratio
+Ynoisy_psk = awgn(Ytx_psk, SNR, 'measured');    % Add noise to signal
+
+% Scatter plot
+hl = scatterplot(Ynoisy_psk(1:nsamp * 5e3), nsamp, 0, 'r.');
+hold on;
+scatterplot(Ynoisy_psk(1:5e3), 1, 0, 'k*', hl);
+title('Constellation Diagram BPSK');
+legend('Received signal', 'Signal constellation');
+axis([-5 5 -5 5]);
+grid on;
+hold off;
+</pre>
+</div>
+</div>
+<h6>COMMUNICATION LINK SIMULATION </h6>
+<div class="code-container">
+    <button class="copy-btn" onclick="copyCode('commlink')">Copy Code</button>
+    <pre id="commlink" style="display:none;">
+        clc;
+clear all;
+close all;
+
+% Time vector
+t = 0:0.01:1;  
+
+% User input for message bits
+M = [1,0,1,1,0,0,1,0,1]
+
+fc = 2;  % Carrier frequency
+messageLength = length(M);
+
+% Initialize signals
+time = [];
+digitalSignal = [];
+pskSignal = [];
+carrierSignal = [];
+
+% PSK Modulation
+for i = 1:messageLength
+    carrier = sin(2 * pi * fc * t);  % Carrier signal for each bit
+    carrierSignal = [carrierSignal carrier];
+    
+    if M(i) == 1
+        bit = ones(1, length(t));  % Bit = 1
+        PSK = sin(2 * pi * fc * t);  % No phase shift
+    else
+        bit = zeros(1, length(t));  % Bit = 0
+        PSK = sin(2 * pi * fc * t + pi);  % Phase shift by π
+    end
+    
+    digitalSignal = [digitalSignal bit];
+    pskSignal = [pskSignal PSK];
+    
+    time = [time t];
+    t = t + 1;  % Shift time for next bit
+end
+
+% Add Rayleigh fading and noise
+ray = sqrt(randn(1, length(pskSignal)).^2 + randn(1, length(pskSignal)).^2);
+pskSignalRay = pskSignal .* ray;  % Simulate Rayleigh fading
+
+% Demodulation
+demodMsgSignal = [];
+for i = 1:messageLength
+    rx = sum(pskSignalRay((length(t)*(i-1)+1):(length(t)*i)) .* ...
+        carrierSignal((length(t)*(i-1)+1):(length(t)*i)));
+    
+    if rx < 0
+        demodMsgSignal = [demodMsgSignal zeros(1, length(t))];  % Bit = 0
+    else
+        demodMsgSignal = [demodMsgSignal ones(1, length(t))];  % Bit = 1
+    end
+end
+
+% Plotting
+subplot(3,1,1);
+plot(time, digitalSignal, 'm');
+grid on;
+axis([0 messageLength -0.5 1.5]);
+title('Digital Signal');
+
+subplot(3,1,2);
+plot(time, carrierSignal);
+grid on;
+title('Carrier Signal');
+
+subplot(3,1,3);
+plot(time, pskSignal);
+grid on;
+title('PSK Modulated Signal');
+
+figure;
+subplot(2,1,1);
+plot(time, pskSignalRay, 'r');
+grid on;
+title('Received Signal with Rayleigh Fading');
+
+subplot(2,1,2);
+plot(time, demodMsgSignal, 'm');
+grid on;
+axis([0 messageLength -0.5 1.5]);
+title('Demodulated Signal');
+</pre>
+</div>
+</div>
+<h6>CONVOLUTION CODING SCHEME</h6>
+<div class="code-container">
+    
+    <button class="copy-btn" onclick="copyCode('conv')">Copy Code</button>
+    <pre id="conv" style="display:none;">
+        clc;
+clear all;
+close all;
+
+% Input message
+m = [1, 0, 1, 1];  % Message sequence
+p = 2;  % Number of flip-flops (constraint length - 1)
+
+% Add zeros to the message sequence for termination
+z = zeros(1, p);  
+mm = [m, z];  % Concatenate message with zeros
+
+% Initialize variables
+x = zeros(length(mm), p);  % States of shift registers
+c = [];  % Encoded code vector
+
+% Convolutional encoding process
+for i = 1:length(mm)
+    % Update shift register states
+    if i > 1
+        x(i, 1) = mm(i - 1);  % Previous bit
+        if i > 2
+            x(i, 2) = mm(i - 2);  % Two bits back
+        end
+    end
+    
+    % Compute output bits based on generator polynomials
+    g1 = xor(mm(i), x(i, 1));  % Example for G1 = [1 1 0]
+    g2 = xor(g1, x(i, 2));     % Example for G2 = [1 0 1]
+
+    % Append to code vector
+    c = [c, g1, g2];
+end
+
+disp('States of the shift register:');
+disp(x);
+
+disp('Code Vector:');
+disp(c);
+</pre>
+</div>
+</div>
+
+<h6>Linear Block Code</h6>
+<div class="code-container">
+    <button class="copy-btn" onclick="copyCode('Linear')">Copy Code</button>
+    <pre id="Linear" style="display:none;">
+        clc;
+clear all;
+
+% Input code and message sizes
+n = input('Enter the code size (n): ');  % Length of the output code word
+k = input('Enter the message size (k): ');  % Length of the input message bits
+
+if (k < n)
+    % Input message
+    m = input('Enter the message (as a row vector of 0s and 1s): ');
+    
+    % Parity matrix
+    p = [1 1 0; 0 1 1; 1 1 1; 1 0 1];  % Example parity matrix, adjust as needed
+    
+    % Generator matrix
+    g = [eye(k), p];  % Combine identity matrix and parity matrix
+    disp('Generator matrix:');
+    disp(g);
+    
+    % Encode message
+    c = mod(m * g, 2);  % Create the code by multiplying the message and generator matrix
+    disp('Message at transmission side:');
+    disp(c);
+    
+    % Introduce random error
+    e = randerr(1, n);  % Random error pattern
+    r = xor(c, e);  % Received code with error
+    disp('Received code at receiver side:');
+    disp(r);
+    
+    % Parity check matrix
+    h = [p', eye(n - k)];  % Create parity check matrix
+    disp('Parity matrix:');
+    disp(h);
+    
+    % Syndrome calculation
+    disp('Syndrome:');
+    s = mod(r * h', 2);  % Calculate syndrome
+    disp(s);
+    
+    % Identify and correct the error
+    errorPosition = -1;
+    for j = 1:n
+        if isequal(s, h(:, j))
+            errorPosition = j;
+            break;
+        end
+    end
+    
+    if errorPosition ~= -1
+        disp(['Position of error bit is: ', num2str(errorPosition)]);
+        r(errorPosition) = mod(r(errorPosition) + 1, 2);  % Correct the error
+    else
+        disp('No error detected or multiple errors.');
+    end
+    
+    disp('Corrected code:');
+    disp(r);
+    
+    % Decoded message
+    dm = r(1:k);  % The first k bits of the corrected code word is the message
+    disp('Decoded message:');
+    disp(dm);
+else
+    disp('Message size (k) should be less than code size (n).');
+end
+
+</pre>
+</div>
+</div>
+
+<h6>CYCLIC BLOCK CODE</h6>
+<div class="code-container">
+    <button class="copy-btn" onclick="copyCode('CYCLIC')">Copy Code</button>
+    <pre id="CYCLIC" style="display:none;">
+        clc;
+clear all;
+
+% Prompt for input values
+codeLength = input('Enter the length of the code: ');  % Length of the output code word
+messageLength = input('Enter the length of the message: ');  % Length of the input message bits
+
+% Ensure message length is less than code length
+if (messageLength < codeLength)
+    Message = input('Enter the message bits (as a row vector of 0s and 1s): ');
+
+    disp('Message:');
+    disp(Message);
+
+    % Generate cyclic polynomial
+    disp('Cyclic polynomial:');
+    cyclicPolynomial = cyclpoly(codeLength, messageLength, 'min'); % Generates a generator polynomial
+    disp(cyclicPolynomial);
+
+    % Encode the message using cyclic coding
+    disp('Encoded word:');
+    code = encode(Message, codeLength, messageLength, 'cyclic', cyclicPolynomial);
+    disp(code);
+
+    % Introduce a random error
+    disp('Error pattern generation:');
+    error = randerr(1, codeLength);  % Introduces a random error
+    disp(error);
+
+    % Add error to the encoded word
+    disp('Received vector:');
+    receivedCode = xor(code, error);  % XOR the error with the code word
+    disp(receivedCode);
+
+    % Decode the received word
+    disp('Decoded message bits:');
+    msg = decode(receivedCode, codeLength, messageLength, 'cyclic', cyclicPolynomial);
+    disp(msg);
+else
+    disp('Message length should be less than code length.');
+end
+
+</pre>
+</div>
+</div>
+
+<h6>SIMULATION OF BPSK MODULATION AND DEMODULATION</h6>
+<div class="code-container">
+    <button class="copy-btn" onclick="copyCode('BPSK')">Copy Code</button>
+    <pre id="BPSK" style="display:none;">
+        clc;
+clear all;
+close all;
+
+% Parameters
+fl = 8;            % Lower frequency (Hz)
+f2 = 2 * fl;       % Upper frequency (Hz)
+a = 1;             % Amplitude
+n = [1, 0, 1, 0, 0];  % 5-bit message
+L = length(n);     % Length of the message signal
+
+% Time vector for message signal
+tn = 0:0.01:(L-1)*0.01;
+
+% Plot message signal (stairs for binary representation)
+subplot(5,1,1);
+stairs(tn, n, 'LineWidth', 3);
+title('Message Signal');
+xlabel('Time');
+ylabel('Amplitude');
+grid on;
+
+% Time vector for carrier signals
+t = 0:0.01: (L * 100) * 0.01;
+
+% Generate the two carrier signals
+y1 = a * sin(2 * pi * fl * t);  % Carrier signal 1
+y2 = a * sin(2 * pi * f2 * t);  % Carrier signal 2
+
+subplot(5,1,2);
+plot(t, y1);
+title('Carrier Signal 1');
+xlabel('Time');
+ylabel('Amplitude');
+grid on;
+
+subplot(5,1,3);
+plot(t, y2);
+title('Carrier Signal 2');
+xlabel('Time');
+ylabel('Amplitude');
+grid on;
+
+% FSK modulation process
+s = zeros(1, length(t)); % Initialize modulated signal
+for i = 1:L
+    % Modulate each bit
+    for j = (i-1)*100+1:i*100
+        if n(i) == 1
+            s(j) = y1(j);  % Use carrier signal 1 for bit 1
+        else
+            s(j) = y2(j);  % Use carrier signal 2 for bit 0
+        end
+    end
+end
+
+% Plot the FSK modulated signal
+subplot(5,1,4);
+plot(t, s, 'LineWidth', 2);
+title('FSK Modulated Signal');
+xlabel('Time');
+ylabel('Amplitude');
+grid on;
+
+% FSK demodulation process (simple detection by thresholding)
+demod = zeros(1, L); % Initialize demodulated signal
+for i = 1:L
+    % For each bit, check which carrier signal is more dominant
+    correlation1 = sum(s((i-1)*100+1:i*100) .* y1(1:100));
+    correlation2 = sum(s((i-1)*100+1:i*100) .* y2(1:100));
+    
+    % Decision based on which correlation is higher
+    if correlation1 > correlation2
+        demod(i) = 1;  % Bit 1 detected
+    else
+        demod(i) = 0;  % Bit 0 detected
+    end
+end
+
+% Plot the demodulated FSK signal
+subplot(5,1,5);
+stairs(0:L-1, demod, 'LineWidth', 3);
+title('FSK Demodulated Signal');
+xlabel('Time');
+ylabel('Amplitude');
+grid on;
+
+</pre>
+</div>
+</div>
+
+<h6>ASK MODULATION</h6>
+<div class="code-container">
+    <button class="copy-btn" onclick="copyCode('ASK')">Copy Code</button>
+    <pre id="ASK" style="display:none;">
+        clc;
+clear all;
+close all;
+
+% Parameters
+Tb = 1;           % Bit duration
+fc = 10;          % Carrier frequency
+N = 8;            % Number of bits (message length)
+
+% Generate time vector for carrier signal
+t = 0:0.001:Tb;   % Time vector (resolution for signals)
+
+% Generate carrier signal
+c = sqrt(2 / Tb) * sin(2 * pi * fc * t);  % Carrier signal
+
+% Generate random binary message signal
+m = rand(1, N) > 0.5;  % Random binary message (0 or 1)
+
+% Plot the input binary data
+subplot(5, 1, 1);
+stem(m, 'r'); 
+title('Binary Data Bits');
+xlabel('n ---');
+ylabel('b(n)');
+grid on;
+
+% Initialize variables for message signal and ASK signal
+t1 = 0;  % Start time for message
+t2 = Tb; % End time for message
+message = [];  % Message signal
+ask_sig = [];  % ASK signal
+
+% Generate the message signal (Unipolar)
+for i = 1:N
+    % Generate a time vector for the message signal
+    t = t1:0.001:t2; 
+
+    % Message signal (Unipolar: 1 for bit 1, 0 for bit 0)
+    if m(i) == 1
+        m_s = ones(1, length(t));
+    else
+        m_s = zeros(1, length(t));
+    end
+    
+    message = [message m_s];  % Concatenate message
+
+    % Plot the message signal
+    subplot(5, 1, 2);
+    plot(t, m_s, 'r');
+    title('Message Signal (Unipolar)');
+    xlabel('t ---');
+    ylabel('m(t)');
+    grid on;
+    hold on;
+    
+    % ASK signal (Amplitude Shift Keying)
+    ask_sig = [ask_sig c .* m_s];  % Modulate the message with the carrier signal
+
+    t1 = t2 + 0.01;  % Increment time
+    t2 = t1 + Tb;    % Update end time for next message bit
+end
+
+hold off;
+
+% Plot the carrier signal
+subplot(5, 1, 3);
+plot(t, c);
+title('Carrier Signal');
+xlabel('t ---');
+ylabel('c(t)');
+grid on;
+
+% Plot the ASK signal
+subplot(5, 1, 4);
+plot(0:0.001:(N * Tb), ask_sig);
+title('ASK Signal');
+xlabel('t ---');
+ylabel('s(t)');
+grid on;
+
+% Demodulation (Receiver side)
+t1 = 0; 
+t2 = Tb;
+demod = zeros(1, N);  % Initialize demodulated signal
+
+for i = 1:N
+    % Generate time vector for the current message bit
+    t = t1:0.001:t2;
+    
+    % Correlator (Multiply ASK signal with carrier signal)
+    x = sum(c .* ask_sig((i-1)*length(t)+1:i*length(t)));
+    
+    % Decision device (threshold at 0)
+    if x > 0
+        demod(i) = 1;
+    else
+        demod(i) = 0;
+    end
+    
+    t1 = t2 + 0.01;  % Increment time
+    t2 = t1 + Tb;    % Update end time for next message bit
+end
+
+% Plot the demodulated binary data bits
+subplot(5, 1, 5);
+stem(demod, 'g');
+title('ASK Demodulated Signal');
+xlabel('n --');
+ylabel('b(n)');
+grid on;
+</pre>
+</div>
+</div>
+
+<h6>SIMULATION OF LINE CODING</h6>
+<div class="code-container">
+    <button class="copy-btn" onclick="copyCode('linecoding')">Copy Code</button>
+    <pre id="linecoding" style="display:none;">
+        clc;
+clear all;
+close all;
+
+% Input sequence
+x = [1, 0, 1, 0, 1];
+nx = length(x);  % Length of the input message
+t = 0:0.001:nx;  % Time vector
+
+% Initialize variables for different codes
+unipolar_code = [];
+polar_code = [];
+bipolar_code = [];
+manchester_code = [];
+
+% Loop through each bit in the input sequence
+for i = 1:nx
+    if x(i) == 1
+        % For 1, generate the corresponding codes
+        unipolar_code = [unipolar_code, square(t*2*pi, 100)];  % Unipolar code
+        polar_code = [polar_code, square(t*2*pi, 100)];  % Polar code
+        bipolar_code = [bipolar_code, ones(1, length(t))];  % Bipolar code (1 for 1)
+        manchester_code = [manchester_code, -square(t*2*pi, 50)];  % Manchester code
+    else
+        % For 0, generate the corresponding codes
+        unipolar_code = [unipolar_code, zeros(1, length(t))];  % Unipolar code
+        polar_code = [polar_code, -square(t*2*pi, 100)];  % Polar code (inverted for 0)
+        bipolar_code = [bipolar_code, -ones(1, length(t))];  % Bipolar code (-1 for 0)
+        manchester_code = [manchester_code, square(t*2*pi, 50)];  % Manchester code
+    end
+end
+
+% Plot the different codes
+subplot(4, 1, 1);
+plot(t, unipolar_code);
+ylabel('Unipolar Code');
+grid on;
+axis([0 nx -1.5 1.5]);
+
+subplot(4, 1, 2);
+plot(t, polar_code);
+ylabel('Polar Code');
+grid on;
+axis([0 nx -1.5 1.5]);
+
+subplot(4, 1, 3);
+plot(t, bipolar_code);
+ylabel('Bipolar Code');
+grid on;
+axis([0 nx -1.5 1.5]);
+
+subplot(4, 1, 4);
+plot(t, manchester_code);
+ylabel('Manchester Code');
+grid on;
+axis([0 nx -1.5 1.5]);
+</pre>
+</div>
+</div>
+
+<script>
+    function copyCode(id) {
+        const code = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Code copied to clipboard!');
+        }).catch(err => {
+            alert('Failed to copy code: ' + err);
+        });
+    }
+</script>
+</body>
+</html>
